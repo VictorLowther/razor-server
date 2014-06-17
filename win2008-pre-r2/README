@@ -1,0 +1,79 @@
+This directory contains UNFINISHED support for using Razor to perform
+an image-based installation of Windows 2008 versions older than
+Windows 2008 R2.  Currently, this consists of the
+win2008-driver-inject.ps1 script, which uses imagex and peimg to
+inject drivers into the install.wim extracted from a Windows 2008 ISO.
+
+Prerequisites
+
+* A 64 bit workstation running Windows Vista or Windows 2008 pre R2.
+  This workstation must have the following tools installed to their
+  default locations:
+  * The Windows AIK (http://www.microsoft.com/en-us/download/details.aspx?id=5753)
+  * Powershell (which must also be fully up-to-date)
+* A volume licensed Windows 2008 ISO, preferably with SP2 preapplied,
+  for AMD64 hardware
+* All the drivers you will need for the hardware and/or VMs you will
+  be installing Windows on to.
+
+To use the win2008-driver-inject.ps1 script:
+
+* Create a scratch directory on your workstation.
+* Make sure you have at least 30 gigs of free space.
+* Copy the win2008-driver-inject.ps1 script into the scratch
+  directory.
+* Copy the install.wim from the Windows 2008 ISO into the scratch
+  directory.
+* Create a folder named Drivers in the scratch directory.
+* Extract all of the drivers you want to inject into the install.wim
+into the Drivers directory.
+* Run the win2008-driver-inject.ps1 script as Administrator:
+
+  powershell -executionpolicy bypass -file win2008-driver-inject.ps1
+
+* The script will inject all the drivers into all the images in the
+  install.wim.  Depending on how may drivers you are injecting, this
+  may take a long time.
+* Once the script is finished, you will be left with an
+  install-updated.wim that you can perform an image-based installation
+  from using a hacked-up Windows 2008 R2 install repo source on a Dell
+  ASM appliance.
+
+To hack up a Windows 2008 R2 repo:
+
+* Create a razor repository for installing Windows 2008 R2 according
+  to the instructions in the Dell ASM Quickstart guide.
+* Copy the install-updated.wim into
+  /var/lib/razor/repo-sources/<reponame>/sources/install.wim
+* Edit /opt/razor-server/tasks/windows2008/second-stage.ps1.erb,
+  changing the line that reads:
+
+  $target_os = "<%= node.task.os_version.gsub('_', ' ') %>"
+
+  to read:
+
+  $target_os = "Windows Longhorn SERVERSTANDARD"
+* Restart the razor server, and wait a minute for ASM to start talking
+  to razor again.
+* Deploy something with Windows 2008, and it will be deployed with
+  Windows 2008 pre R2.
+
+Please keep in mind that this is UNFINISHED CODE, and it has not been
+demonstrated that the systems installed in this fashion are actually
+functional.
+
+Unfinished work:
+
+Reconcile the differences in the unattended.xml templates between pre
+R2 and R2 code.
+
+Refactor the Windows support to allow Windows 2012 to do image-based
+installs as well.
+
+Refactor Windows support to reflect that all of the Windows
+installations use the same WinPE code to start Setup and/or lay down
+the install image onto the hard drive.
+
+Figure out what needs to be tuned in the second-stage.ps1.erb to make
+sure that the OS winds up on the C: drive when we are installing
+Windows 2008 pre R2, and the make whatever changes are needed.
